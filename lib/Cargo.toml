@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 js-sandbox = "0.1.6"
 serde_json = "1.0.104"
+thiserror = "1.0.44"
