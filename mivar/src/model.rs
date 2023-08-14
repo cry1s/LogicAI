@@ -3,15 +3,14 @@ use crate::{
 };
 use js_sandbox::{AnyError, Script};
 use serde_json::Value;
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use std::collections::hash_map::Entry::Vacant;
-use KnowledgeBaseError::ArgCountError;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Default)]
 pub struct KnowledgeBase {
-    base: HashMap<String, KBClass>,
+    pub(crate) base: HashMap<String, KBClass>,
     relations: HashMap<String, Relation>,
-    rules: Vec<Rule>,
+    pub(crate) rules: Vec<Rule>,
 }
 
 impl KnowledgeBase {
@@ -32,7 +31,7 @@ impl KnowledgeBase {
         out: Parameter,
     ) -> Result<()> {
         if relation.pointer.borrow().args_count != args.len() {
-            return Err(ArgCountError)
+            return Err(KnowledgeBaseError::ArgCountError);
         }
         let rule = Rule::new(name, description, out, args, relation);
         self.rules.push(rule);
@@ -47,15 +46,14 @@ impl KnowledgeBase {
         if self.base.contains_key(name) {
             Err(KnowledgeBaseError::NameAlreadyExists)
         } else {
-            let class = KBClass::new(name, description);
+            let class = KBClass::new(name, description, None);
             self.base.insert(name.to_string(), class.clone());
             Ok(class)
         }
     }
 
     pub fn new_relation(&mut self, js_function: &str, description: &str) -> Result<Relation> {
-        let script =
-            Script::from_string(js_function).map_err(KnowledgeBaseError::BadCode)?;
+        let script = Script::from_string(js_function).map_err(KnowledgeBaseError::BadCode)?;
         let (name, args_count) = process_function_string(js_function).ok_or(
             KnowledgeBaseError::BadCode(AnyError::msg("Failed to parse name and args of function")),
         )?;
@@ -81,12 +79,22 @@ impl KnowledgeBase {
 #[derive(Clone)]
 pub struct KBClass {
     pointer: Rc<RefCell<KBClassInner>>,
+    master: Option<Box<KBClass>>,
 }
 
 impl KBClass {
-    fn new(name: &str, description: &str) -> Self {
+    pub(crate) fn get_full_name(&self) -> String {
+        if let Some(master) = &self.master {
+            master.get_full_name() + &self.pointer.borrow().name
+        } else {
+            self.pointer.borrow().name.clone()
+        }
+    }
+
+    fn new(name: &str, description: &str, master: Option<Box<KBClass>>) -> Self {
         KBClass {
             pointer: Rc::new(RefCell::new(KBClassInner::new(name, description))),
+            master,
         }
     }
 
@@ -94,7 +102,7 @@ impl KBClass {
         if self.pointer.borrow().classes.contains_key(name) {
             Err(KnowledgeBaseError::NameAlreadyExists)
         } else {
-            let class = KBClass::new(name, description);
+            let class = KBClass::new(name, description, Some(Box::new(self.clone())));
             self.pointer
                 .borrow_mut()
                 .classes
@@ -112,7 +120,7 @@ impl KBClass {
         if self.pointer.borrow().parametres.contains_key(name) {
             Err(KnowledgeBaseError::NameAlreadyExists)
         } else {
-            let parameter = Parameter::new(name, description, default);
+            let parameter = Parameter::new(name, description, default, Box::new(self.clone()));
             self.pointer
                 .borrow_mut()
                 .parametres
@@ -142,25 +150,31 @@ impl KBClassInner {
 
 #[derive(Clone)]
 pub struct Parameter {
-    pointer: Rc<RefCell<ParameterInner>>,
+    pub(crate) pointer: Rc<RefCell<ParameterInner>>,
+    pub(crate) master: Box<KBClass>,
 }
 
 impl Parameter {
-    fn new(name: &str, description: &str, default: Option<Value>) -> Self {
+    pub(crate) fn get_full_name(&self) -> String {
+        self.master.as_ref().get_full_name() + &self.pointer.borrow().name
+    }
+
+    fn new(name: &str, description: &str, default: Option<Value>, master: Box<KBClass>) -> Self {
         Parameter {
             pointer: Rc::new(RefCell::new(ParameterInner::new(
                 name,
                 description,
                 default,
             ))),
+            master,
         }
     }
 }
 
-struct ParameterInner {
-    name: String,
-    description: String,
-    default: Option<Value>,
+pub(crate) struct ParameterInner {
+    pub(crate) name: String,
+    pub(crate) description: String,
+    pub(crate) default: Option<Value>,
 }
 
 impl ParameterInner {
@@ -210,15 +224,21 @@ impl RelationInner {
 }
 
 pub struct Rule {
-    name: String,
-    description: String,
-    target: Parameter,
-    args: Vec<Parameter>,
-    relation: Relation,
+    pub(crate) name: String,
+    pub(crate) description: String,
+    pub(crate) target: Parameter,
+    pub(crate) args: Vec<Parameter>,
+    pub(crate) relation: Relation,
 }
 
 impl Rule {
-    pub fn new(name: &str, description: &str, target: Parameter, args: &[Parameter], relation: Relation) -> Rule {
+    pub fn new(
+        name: &str,
+        description: &str,
+        target: Parameter,
+        args: &[Parameter],
+        relation: Relation,
+    ) -> Rule {
         Rule {
             name: name.to_string(),
             description: description.to_string(),
@@ -226,5 +246,10 @@ impl Rule {
             args: Vec::from(args),
             relation,
         }
+    }
+
+    pub(crate) fn get_target_full_name(&self) -> String {
+        let prm = self.target.pointer.borrow();
+        self.target.get_full_name()
     }
 }

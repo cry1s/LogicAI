@@ -2,8 +2,8 @@ use js_sandbox::AnyError;
 use thiserror::Error;
 
 pub mod builder;
+mod graph_solver;
 pub mod model;
-
 pub use model::KnowledgeBase;
 
 mod utils;

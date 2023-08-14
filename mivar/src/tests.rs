@@ -115,7 +115,8 @@ fn triangle_builder_test() {
             "Calc perimeter",
             "Using sum to count perimeter",
         )
-        .build();
+        .build()
+        .unwrap();
     todo!();
 }
 

@@ -1,6 +1,6 @@
 use super::Result;
-use serde_json::Value;
 use crate::KnowledgeBase;
+use serde_json::Value;
 
 pub struct KnowledgeBaseBuilder {}
 
