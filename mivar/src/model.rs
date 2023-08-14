@@ -1,48 +1,31 @@
-use crate::utils::process_function_string;
+use crate::{builder::KnowledgeBaseBuilder, utils::process_function_string, KnowledgeBaseError, Result};
 use js_sandbox::{AnyError, Script};
 use serde_json::Value;
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::rc::Rc;
-use thiserror::Error;
-
-pub mod builder;
-mod utils;
-
-#[derive(Error, Debug)]
-pub enum KnowledgeBaseError {
-    #[error("This name already exists")]
-    NameAlreadyExists,
-    #[error("{0}")]
-    BadCode(AnyError),
-    #[error("Way not found")]
-    SolveError,
-}
-
-pub type Result<T> = std::result::Result<T, KnowledgeBaseError>;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 pub struct KnowledgeBase {
     base: HashMap<String, KBClass>,
     relations: HashMap<String, Relation>,
+    rules: Vec<Rule>,
 }
 
 impl KnowledgeBase {
-    pub(crate) fn solve(
+    pub fn solve(
         &self,
-        p0: &[(&Parameter, i32); 3],
-        p1: &[&Parameter; 2],
+        known_values: &Vec<(&Parameter, Value)>,
+        values_to_find: &Vec<&Parameter>,
     ) -> Result<HashMap<String, Value>> {
         todo!()
     }
 
     pub(crate) fn new_rule(
         &self,
-        p0: &str,
-        p1: &str,
-        p2: &Relation,
-        p3: &Vec<&Parameter>,
-        p4: &Parameter,
-    ) {
+        name: &str,
+        description: &str,
+        relation: &Relation,
+        args: &Vec<&Parameter>,
+        out: &Parameter,
+    ) -> Result<Rule> {
         todo!()
     }
 
@@ -50,6 +33,7 @@ impl KnowledgeBase {
         KnowledgeBase {
             base: Default::default(),
             relations: Default::default(),
+            rules: vec![],
         }
     }
 
@@ -66,10 +50,10 @@ impl KnowledgeBase {
     pub fn new_relation(&mut self, js_function: &str, description: &str) -> Result<Relation> {
         let script =
             Script::from_string(js_function).map_err(|e| KnowledgeBaseError::BadCode(e))?;
-        let (name, args) = process_function_string(js_function).ok_or(
+        let (name, args_count) = process_function_string(js_function).ok_or(
             KnowledgeBaseError::BadCode(AnyError::msg("Failed to parse name and args of function")),
         )?;
-        if args == 0 {
+        if args_count == 0 {
             return Err(KnowledgeBaseError::BadCode(AnyError::msg(
                 "0 arguments function",
             )));
@@ -77,27 +61,26 @@ impl KnowledgeBase {
         if self.relations.contains_key(&name) {
             Err(KnowledgeBaseError::NameAlreadyExists)
         } else {
-            let relation = Relation::new(&name, args, script, description);
+            let relation = Relation::new(&name, args_count, script, description);
             self.relations.insert(name, relation.clone());
             Ok(relation)
         }
     }
+
+    pub(crate) fn builder() -> KnowledgeBaseBuilder {
+        KnowledgeBaseBuilder::new()
+    }
 }
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct KBClass {
     pointer: Rc<RefCell<KBClassInner>>,
 }
 
 impl KBClass {
-    fn new(name: &str, description: &str) -> KBClass {
+    fn new(name: &str, description: &str) -> Self {
         KBClass {
-            pointer: Rc::new(RefCell::new(KBClassInner {
-                name: name.to_string(),
-                description: description.to_string(),
-                parametres: Default::default(),
-                classes: Default::default(),
-            })),
+            pointer: Rc::new(RefCell::new(KBClassInner::new(name, description))),
         }
     }
 
@@ -133,12 +116,22 @@ impl KBClass {
     }
 }
 
-#[derive(Default)]
 struct KBClassInner {
     name: String,
     description: String,
     parametres: HashMap<String, Parameter>,
     classes: HashMap<String, KBClass>,
+}
+
+impl KBClassInner {
+    fn new(name: &str, description: &str) -> Self {
+        KBClassInner {
+            name: name.to_string(),
+            description: description.to_string(),
+            parametres: Default::default(),
+            classes: Default::default(),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -147,7 +140,7 @@ pub struct Parameter {
 }
 
 impl Parameter {
-    fn new(name: &str, description: &str, default: Option<Value>) -> Parameter {
+    fn new(name: &str, description: &str, default: Option<Value>) -> Self {
         Parameter {
             pointer: Rc::new(RefCell::new(ParameterInner::new(
                 name,
@@ -165,7 +158,7 @@ struct ParameterInner {
 }
 
 impl ParameterInner {
-    fn new(name: &str, description: &str, default: Option<Value>) -> ParameterInner {
+    fn new(name: &str, description: &str, default: Option<Value>) -> Self {
         ParameterInner {
             name: name.to_string(),
             description: description.to_string(),
@@ -210,5 +203,8 @@ impl RelationInner {
     }
 }
 
-#[cfg(test)]
-mod tests;
+pub struct Rule {
+    target: Parameter,
+    args: Vec<Parameter>,
+    relation: Relation,
+}

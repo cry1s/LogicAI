@@ -1,7 +1,6 @@
 use crate::utils::process_function_string;
 use crate::*;
-use serde_json::Value;
-use crate::builder::KnowledgeBaseBuilder;
+use serde_json::{json, Value};
 
 #[test]
 fn triangle_test() {
@@ -52,26 +51,26 @@ fn triangle_test() {
         &three_sum_ref,
         &[&a_ref, &b_ref, &c_ref].into(),
         &big_p_ref,
-    );
+    ).expect("Same args number as in relation");
     kb.new_rule(
         "Calculating small p",
         "p is P/2",
         &half_ref,
         &[&big_p_ref].into(),
         &small_p_ref,
-    );
+    ).unwrap();
     kb.new_rule(
         "Calculating square",
         "Heron formula",
         &heron_ref,
         &[&a_ref, &b_ref, &c_ref, &small_p_ref].into(),
         &big_s_ref,
-    );
+    ).unwrap();
 
-    let mut solution: HashMap<String, Value> = kb
+    let mut solution = kb
         .solve(
-            &[(&a_ref, 3), (&b_ref, 4), (&c_ref, 5)],
-            &[&big_s_ref, &big_p_ref],
+            &[(&a_ref, json!(3)), (&b_ref, json!(4)), (&c_ref, json!(5))].into(),
+            &[&big_s_ref, &big_p_ref].into(),
         )
         .expect("Enough data to solve");
     assert_eq!(
@@ -82,35 +81,23 @@ fn triangle_test() {
 
 #[test]
 fn triangle_builder_test() {
-    let mut kbb = KnowledgeBaseBuilder::new();
+    let mut kbb = KnowledgeBase::builder();
     kbb.new_class("Triangle", "Model of triangle")
-        .unwrap()
         .new_class("Sides", "sides of triangle")
-        .unwrap()
         .add_parameter("a", "First side", None)
-        .unwrap()
         .add_parameter("b", "Second side", None)
-        .unwrap()
         .add_parameter("c", "Third side", None)
-        .unwrap()
         // leaving "sides" class to upper level
         .leave_class()
         // now we at "triangle" class
         .new_class("Parametres of triangle", "")
-        .unwrap()
         .add_parameter("P", "Perimeter", None)
-        .unwrap()
         .add_parameter("p", "Half of perimeter", None)
-        .unwrap()
         .add_parameter("S", "Square", None)
-        .unwrap()
         .go_base() // we are in kb again
         .new_relation("function three_sum(a, b, c) { return a + b + c }")
-        .unwrap()
         .new_relation("function half(a) { return a / 2 }")
-        .unwrap()
         .new_relation("function heron(a, b, c, p) { return Math.sqrt(p*(p-a)*(p-b)*(p-c)) }")
-        .unwrap()
         .new_rule(
             "three_sum",
             &["Triangle.Sides.a", "Triangle.Sides.b", "Triangle.Sides.c"].into(),
@@ -118,14 +105,13 @@ fn triangle_builder_test() {
             "Calc perimeter",
             "Using sum to count perimeter",
         )
-        .unwrap()
         .new_rule(
             "half",
             &["Parametres of triangle.P"].into(),
             &["Parametres of triangle.p"].into(),
             "Calc perimeter",
             "Using sum to count perimeter",
-        ).unwrap()
+        )
         .build();
     todo!();
 }

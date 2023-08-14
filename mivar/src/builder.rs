@@ -10,11 +10,11 @@ impl KnowledgeBaseBuilder {
         todo!()
     }
 
-    pub(crate) fn new_rule(&self, p0: &str, p1: &Vec<&str>, p2: &Vec<&str>, p3: &str, p4: &str) -> Result<KnowledgeBaseBuilder> {
+    pub(crate) fn new_rule(&self, p0: &str, p1: &Vec<&str>, p2: &Vec<&str>, p3: &str, p4: &str) -> KnowledgeBaseBuilder {
         todo!()
     }
 
-    pub(crate) fn new_relation(&self, p0: &str) -> Result<KnowledgeBaseBuilder> {
+    pub(crate) fn new_relation(&self, p0: &str) -> KnowledgeBaseBuilder {
         todo!()
     }
 
@@ -26,11 +26,11 @@ impl KnowledgeBaseBuilder {
         todo!()
     }
 
-    pub(crate) fn add_parameter(&self, p0: &str, p1: &str, p2: Option<Value>) -> Result<KnowledgeBaseBuilder> {
+    pub(crate) fn add_parameter(&self, p0: &str, p1: &str, p2: Option<Value>) -> KnowledgeBaseBuilder {
         todo!()
     }
 
-    pub(crate) fn new_class(&self, p0: &str, p1: &str) -> Result<KnowledgeBaseBuilder> {
+    pub(crate) fn new_class(&self, p0: &str, p1: &str) -> KnowledgeBaseBuilder {
         todo!()
     }
 
