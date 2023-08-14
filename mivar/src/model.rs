@@ -1,8 +1,13 @@
-use crate::{builder::KnowledgeBaseBuilder, utils::process_function_string, KnowledgeBaseError, Result};
+use crate::{
+    builder::KnowledgeBaseBuilder, utils::process_function_string, KnowledgeBaseError, Result,
+};
 use js_sandbox::{AnyError, Script};
 use serde_json::Value;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::collections::hash_map::Entry::Vacant;
+use KnowledgeBaseError::ArgCountError;
 
+#[derive(Default)]
 pub struct KnowledgeBase {
     base: HashMap<String, KBClass>,
     relations: HashMap<String, Relation>,
@@ -12,29 +17,30 @@ pub struct KnowledgeBase {
 impl KnowledgeBase {
     pub fn solve(
         &self,
-        known_values: &Vec<(&Parameter, Value)>,
-        values_to_find: &Vec<&Parameter>,
+        known_values: &[(Parameter, Value)],
+        values_to_find: &[Parameter],
     ) -> Result<HashMap<String, Value>> {
         todo!()
     }
 
     pub(crate) fn new_rule(
-        &self,
+        &mut self,
         name: &str,
         description: &str,
-        relation: &Relation,
-        args: &Vec<&Parameter>,
-        out: &Parameter,
-    ) -> Result<Rule> {
-        todo!()
+        relation: Relation,
+        args: &[Parameter],
+        out: Parameter,
+    ) -> Result<()> {
+        if relation.pointer.borrow().args_count != args.len() {
+            return Err(ArgCountError)
+        }
+        let rule = Rule::new(name, description, out, args, relation);
+        self.rules.push(rule);
+        Ok(())
     }
 
     pub fn new() -> KnowledgeBase {
-        KnowledgeBase {
-            base: Default::default(),
-            relations: Default::default(),
-            rules: vec![],
-        }
+        KnowledgeBase::default()
     }
 
     pub fn new_class(&mut self, name: &str, description: &str) -> Result<KBClass> {
@@ -49,7 +55,7 @@ impl KnowledgeBase {
 
     pub fn new_relation(&mut self, js_function: &str, description: &str) -> Result<Relation> {
         let script =
-            Script::from_string(js_function).map_err(|e| KnowledgeBaseError::BadCode(e))?;
+            Script::from_string(js_function).map_err(KnowledgeBaseError::BadCode)?;
         let (name, args_count) = process_function_string(js_function).ok_or(
             KnowledgeBaseError::BadCode(AnyError::msg("Failed to parse name and args of function")),
         )?;
@@ -58,12 +64,12 @@ impl KnowledgeBase {
                 "0 arguments function",
             )));
         }
-        if self.relations.contains_key(&name) {
-            Err(KnowledgeBaseError::NameAlreadyExists)
-        } else {
-            let relation = Relation::new(&name, args_count, script, description);
-            self.relations.insert(name, relation.clone());
+        if let Vacant(e) = self.relations.entry(name) {
+            let relation = Relation::new(e.key(), args_count, script, description);
+            e.insert(relation.clone());
             Ok(relation)
+        } else {
+            Err(KnowledgeBaseError::NameAlreadyExists)
         }
     }
 
@@ -204,7 +210,21 @@ impl RelationInner {
 }
 
 pub struct Rule {
+    name: String,
+    description: String,
     target: Parameter,
     args: Vec<Parameter>,
     relation: Relation,
+}
+
+impl Rule {
+    pub fn new(name: &str, description: &str, target: Parameter, args: &[Parameter], relation: Relation) -> Rule {
+        Rule {
+            name: name.to_string(),
+            description: description.to_string(),
+            target,
+            args: Vec::from(args),
+            relation,
+        }
+    }
 }

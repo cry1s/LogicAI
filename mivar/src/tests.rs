@@ -48,29 +48,32 @@ fn triangle_test() {
     kb.new_rule(
         "Calculating perimeter via all sides",
         "",
-        &three_sum_ref,
-        &[&a_ref, &b_ref, &c_ref].into(),
-        &big_p_ref,
-    ).expect("Same args number as in relation");
+        three_sum_ref,
+        &[a_ref.clone(), b_ref.clone(), c_ref.clone()],
+        big_p_ref.clone(),
+    )
+    .expect("Same args number as in relation");
     kb.new_rule(
         "Calculating small p",
         "p is P/2",
-        &half_ref,
-        &[&big_p_ref].into(),
-        &small_p_ref,
-    ).unwrap();
+        half_ref,
+        &[big_p_ref.clone()],
+        small_p_ref.clone(),
+    )
+    .unwrap();
     kb.new_rule(
         "Calculating square",
         "Heron formula",
-        &heron_ref,
-        &[&a_ref, &b_ref, &c_ref, &small_p_ref].into(),
-        &big_s_ref,
-    ).unwrap();
+        heron_ref,
+        &[a_ref.clone(), b_ref.clone(), c_ref.clone(), small_p_ref],
+        big_s_ref.clone(),
+    )
+    .unwrap();
 
-    let mut solution = kb
+    let solution = kb
         .solve(
-            &[(&a_ref, json!(3)), (&b_ref, json!(4)), (&c_ref, json!(5))].into(),
-            &[&big_s_ref, &big_p_ref].into(),
+            &[(a_ref, json!(3)), (b_ref, json!(4)), (c_ref, json!(5))],
+            &[big_s_ref, big_p_ref],
         )
         .expect("Enough data to solve");
     assert_eq!(
