@@ -1,3 +1,4 @@
+use crate::graph_solver::Graph;
 use crate::{
     builder::KnowledgeBaseBuilder, utils::process_function_string, KnowledgeBaseError, Result,
 };
@@ -19,6 +20,7 @@ impl KnowledgeBase {
         known_values: &[(Parameter, Value)],
         values_to_find: &[Parameter],
     ) -> Result<HashMap<String, Value>> {
+        Graph::new(self);
         todo!()
     }
 
@@ -63,7 +65,7 @@ impl KnowledgeBase {
             )));
         }
         if let Vacant(e) = self.relations.entry(name) {
-            let relation = Relation::new(e.key(), args_count, script, description);
+            let relation = Relation::new(e.key(), args_count, js_function, description);
             e.insert(relation.clone());
             Ok(relation)
         } else {
@@ -189,35 +191,35 @@ impl ParameterInner {
 
 #[derive(Clone)]
 pub struct Relation {
-    pointer: Rc<RefCell<RelationInner>>,
+    pub(crate) pointer: Rc<RefCell<RelationInner>>,
 }
 
 impl Relation {
-    fn new(name: &str, args_count: usize, script: Script, description: &str) -> Self {
+    fn new(name: &str, args_count: usize, js_code: &str, description: &str) -> Self {
         Relation {
             pointer: Rc::new(RefCell::new(RelationInner::new(
                 name,
                 args_count,
-                script,
+                js_code,
                 description,
             ))),
         }
     }
 }
 
-struct RelationInner {
-    name: String,
-    args_count: usize,
-    script: Script,
-    description: String,
+pub(crate) struct RelationInner {
+    pub(crate) name: String,
+    pub(crate) args_count: usize,
+    pub(crate) js_code: String,
+    pub(crate) description: String,
 }
 
 impl RelationInner {
-    fn new(name: &str, args_count: usize, script: Script, description: &str) -> Self {
+    fn new(name: &str, args_count: usize, js_code: &str, description: &str) -> Self {
         Self {
             name: name.to_string(),
             args_count,
-            script,
+            js_code: js_code.to_string(),
             description: description.to_string(),
         }
     }
