@@ -70,55 +70,57 @@ fn triangle_test() {
     )
     .unwrap();
 
-    let solution = kb
-        .solve(
-            &[(a_ref, json!(3)), (b_ref, json!(4)), (c_ref, json!(5))],
-            &[big_s_ref, big_p_ref],
-        )
-        .expect("Enough data to solve");
+    let solution = kb.solve(
+        &[(a_ref, json!(3)), (b_ref, json!(4)), (c_ref, json!(5))],
+        &[big_s_ref, big_p_ref],
+    );
     assert_eq!(
-        solution.get("Triangle/Parametres/S").unwrap(),
+        solution.get("TriangleParametresS").unwrap(),
         &Value::Number(6.into())
+    );
+    assert_eq!(
+        solution.get("TriangleParametresP").unwrap(),
+        &Value::Number(12.into())
     )
 }
 
-#[test]
-fn triangle_builder_test() {
-    let mut kbb = KnowledgeBase::builder();
-    kbb.new_class("Triangle", "Model of triangle")
-        .new_class("Sides", "sides of triangle")
-        .add_parameter("a", "First side", None)
-        .add_parameter("b", "Second side", None)
-        .add_parameter("c", "Third side", None)
-        // leaving "sides" class to upper level
-        .leave_class()
-        // now we at "triangle" class
-        .new_class("Parametres of triangle", "")
-        .add_parameter("P", "Perimeter", None)
-        .add_parameter("p", "Half of perimeter", None)
-        .add_parameter("S", "Square", None)
-        .go_base() // we are in kb again
-        .new_relation("function three_sum(a, b, c) { return a + b + c }")
-        .new_relation("function half(a) { return a / 2 }")
-        .new_relation("function heron(a, b, c, p) { return Math.sqrt(p*(p-a)*(p-b)*(p-c)) }")
-        .new_rule(
-            "three_sum",
-            &["Triangle.Sides.a", "Triangle.Sides.b", "Triangle.Sides.c"].into(),
-            &["Parametres of triangle"].into(),
-            "Calc perimeter",
-            "Using sum to count perimeter",
-        )
-        .new_rule(
-            "half",
-            &["Parametres of triangle.P"].into(),
-            &["Parametres of triangle.p"].into(),
-            "Calc perimeter",
-            "Using sum to count perimeter",
-        )
-        .build()
-        .unwrap();
-    todo!();
-}
+// #[test]
+// fn triangle_builder_test() {
+//     let mut kbb = KnowledgeBase::builder();
+//     kbb.new_class("Triangle", "Model of triangle")
+//         .new_class("Sides", "sides of triangle")
+//         .add_parameter("a", "First side", None)
+//         .add_parameter("b", "Second side", None)
+//         .add_parameter("c", "Third side", None)
+//         // leaving "sides" class to upper level
+//         .leave_class()
+//         // now we at "triangle" class
+//         .new_class("Parametres of triangle", "")
+//         .add_parameter("P", "Perimeter", None)
+//         .add_parameter("p", "Half of perimeter", None)
+//         .add_parameter("S", "Square", None)
+//         .go_base() // we are in kb again
+//         .new_relation("function three_sum(a, b, c) { return a + b + c }")
+//         .new_relation("function half(a) { return a / 2 }")
+//         .new_relation("function heron(a, b, c, p) { return Math.sqrt(p*(p-a)*(p-b)*(p-c)) }")
+//         .new_rule(
+//             "three_sum",
+//             &["Triangle.Sides.a", "Triangle.Sides.b", "Triangle.Sides.c"].into(),
+//             &["Parametres of triangle"].into(),
+//             "Calc perimeter",
+//             "Using sum to count perimeter",
+//         )
+//         .new_rule(
+//             "half",
+//             &["Parametres of triangle.P"].into(),
+//             &["Parametres of triangle.p"].into(),
+//             "Calc perimeter",
+//             "Using sum to count perimeter",
+//         )
+//         .build()
+//         .unwrap();
+//     todo!();
+// }
 
 #[test]
 fn parse_func() {

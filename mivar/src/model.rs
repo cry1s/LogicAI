@@ -7,7 +7,7 @@ use serde_json::Value;
 use std::collections::hash_map::Entry::Vacant;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct KnowledgeBase {
     pub(crate) base: HashMap<String, KBClass>,
     relations: HashMap<String, Relation>,
@@ -19,12 +19,11 @@ impl KnowledgeBase {
         &self,
         known_values: &[(Parameter, Value)],
         values_to_find: &[Parameter],
-    ) -> Result<HashMap<String, Value>> {
-        Graph::new(self);
-        todo!()
+    ) -> HashMap<String, Value> {
+        Graph::new(self, known_values, values_to_find).go()
     }
 
-    pub(crate) fn new_rule(
+    pub fn new_rule(
         &mut self,
         name: &str,
         description: &str,
@@ -55,7 +54,7 @@ impl KnowledgeBase {
     }
 
     pub fn new_relation(&mut self, js_function: &str, description: &str) -> Result<Relation> {
-        let script = Script::from_string(js_function).map_err(KnowledgeBaseError::BadCode)?;
+        let _ = Script::from_string(js_function).map_err(KnowledgeBaseError::BadCode)?;
         let (name, args_count) = process_function_string(js_function).ok_or(
             KnowledgeBaseError::BadCode(AnyError::msg("Failed to parse name and args of function")),
         )?;
@@ -73,12 +72,12 @@ impl KnowledgeBase {
         }
     }
 
-    pub(crate) fn builder() -> KnowledgeBaseBuilder {
+    pub fn builder() -> KnowledgeBaseBuilder {
         KnowledgeBaseBuilder::new()
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct KBClass {
     pointer: Rc<RefCell<KBClassInner>>,
     master: Option<Box<KBClass>>,
@@ -132,6 +131,7 @@ impl KBClass {
     }
 }
 
+#[derive(Debug)]
 struct KBClassInner {
     name: String,
     description: String,
@@ -150,7 +150,7 @@ impl KBClassInner {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Parameter {
     pub(crate) pointer: Rc<RefCell<ParameterInner>>,
     pub(crate) master: Box<KBClass>,
@@ -173,6 +173,7 @@ impl Parameter {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct ParameterInner {
     pub(crate) name: String,
     pub(crate) description: String,
@@ -189,7 +190,7 @@ impl ParameterInner {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Relation {
     pub(crate) pointer: Rc<RefCell<RelationInner>>,
 }
@@ -207,6 +208,7 @@ impl Relation {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct RelationInner {
     pub(crate) name: String,
     pub(crate) args_count: usize,
@@ -225,6 +227,7 @@ impl RelationInner {
     }
 }
 
+#[derive(Debug)]
 pub struct Rule {
     pub(crate) name: String,
     pub(crate) description: String,
@@ -248,10 +251,5 @@ impl Rule {
             args: Vec::from(args),
             relation,
         }
-    }
-
-    pub(crate) fn get_target_full_name(&self) -> String {
-        let prm = self.target.pointer.borrow();
-        self.target.get_full_name()
     }
 }
