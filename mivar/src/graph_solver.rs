@@ -10,28 +10,23 @@ use std::ops::DerefMut;
 use std::rc::Rc;
 
 pub(crate) struct Graph<'a> {
-    all_nodes: HashMap<String, Rc<RefCell<Node<'a>>>>,
     find_nodes: HashMap<String, Rc<RefCell<Node<'a>>>>,
     script: Script,
 }
 
 #[derive(Debug)]
 struct Node<'a> {
-    mark: bool,
     wtg: Vec<WayToGet<'a>>,
     parameter: Parameter,
     value: Option<Value>,
-    possible_to_calc: bool,
 }
 
 impl<'a> Node<'a> {
     pub(crate) fn new(parameter: Parameter) -> Self {
         Node {
-            mark: false,
             wtg: vec![],
             parameter,
             value: None,
-            possible_to_calc: false,
         }
     }
 
@@ -150,11 +145,7 @@ impl<'a> Graph<'a> {
         let script =
             Script::from_string(all_functions.as_str()).expect("functions should be checked");
 
-        Graph {
-            all_nodes,
-            find_nodes,
-            script,
-        }
+        Graph { find_nodes, script }
     }
 
     pub(crate) fn go(mut self) -> HashMap<String, Value> {

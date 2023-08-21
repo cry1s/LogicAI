@@ -1,14 +1,13 @@
-use crate::utils::process_function_string;
-use crate::*;
 use serde_json::{json, Value};
 
 #[test]
 fn triangle_test() {
+    use crate::KnowledgeBase;
     let mut kb = KnowledgeBase::new();
     let mut triangle_class = kb
         .new_class("Triangle", "Model of triangle")
         .expect("all names of classes and parametres are unique in layer of abstraction");
-    let mut triangle_sides_class = triangle_class
+    let triangle_sides_class = triangle_class
         .new_class("Sides", "sides of triangle")
         .unwrap();
     let a_ref = triangle_sides_class
@@ -20,7 +19,7 @@ fn triangle_test() {
     let c_ref = triangle_sides_class
         .new_parameter("c", "Third side", None)
         .unwrap();
-    let mut triangle_parametres_class = triangle_class.new_class("Parametres", "").unwrap();
+    let triangle_parametres_class = triangle_class.new_class("Parametres", "").unwrap();
     let big_p_ref = triangle_parametres_class
         .new_parameter("P", "Perimeter", None)
         .unwrap();
@@ -124,6 +123,8 @@ fn triangle_test() {
 
 #[test]
 fn parse_func() {
+    use crate::model::process_function_string;
+
     assert_eq!(
         process_function_string(
             "function heron(a, b, c, p) { return Math.sqrt(p*(p-a)*(p-b)*(p-c)) }"

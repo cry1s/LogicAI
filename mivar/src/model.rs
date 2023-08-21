@@ -1,7 +1,5 @@
 use crate::graph_solver::Graph;
-use crate::{
-    builder::KnowledgeBaseBuilder, utils::process_function_string, KnowledgeBaseError, Result,
-};
+use crate::{builder::KnowledgeBaseBuilder, KnowledgeBaseError, Result};
 use js_sandbox::{AnyError, Script};
 use serde_json::Value;
 use std::collections::hash_map::Entry::Vacant;
@@ -75,6 +73,27 @@ impl KnowledgeBase {
     pub fn builder() -> KnowledgeBaseBuilder {
         KnowledgeBaseBuilder::new()
     }
+}
+
+pub(crate) fn process_function_string(input: &str) -> Option<(String, usize)> {
+    // Поиск индекса начала имени функции
+    let start_idx = input.find("function")?;
+
+    // Ищем индекс открытой скобки после имени функции
+    let open_bracket_idx = input[start_idx..].find('(').unwrap_or(0) + start_idx;
+
+    // Ищем индекс закрывающей скобки после списка аргументов
+    let close_bracket_idx = input[open_bracket_idx..].find(')').unwrap_or(0) + open_bracket_idx;
+
+    // Извлекаем имя функции и аргументы
+    let function_name = input[start_idx + "function".len()..open_bracket_idx]
+        .trim()
+        .to_string();
+    let arguments = input[open_bracket_idx + 1..close_bracket_idx]
+        .split(',')
+        .count();
+
+    Some((function_name, arguments))
 }
 
 #[derive(Clone, Debug)]

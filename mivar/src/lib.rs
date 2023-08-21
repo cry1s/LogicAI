@@ -6,8 +6,6 @@ mod graph_solver;
 pub mod model;
 pub use model::KnowledgeBase;
 
-mod utils;
-
 pub type Result<T> = std::result::Result<T, KnowledgeBaseError>;
 
 #[derive(Error, Debug)]
